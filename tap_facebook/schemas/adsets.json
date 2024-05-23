@@ -26,10 +26,10 @@
             "type": "string"
         },
         "daily_budget": {
-            "type": "string"
+            "type": "number"
         },
         "lifetime_budget": {
-            "type": "string"
+            "type": "number"
         },
         "optimization_goal": {
             "type": "string"
@@ -167,26 +167,24 @@
                         "type": "object",
                         "properties": {
                             "date_start": {
-                                "type": "string"
+                                "type": "string",
+                                "format": "date"
                             },
                             "date_stop": {
-                                "type": "string"
+                                "type": "string",
+                                "format": "date"
                             },
                             "impressions": {
-                                "type": "string"
+                                "type": "integer"
                             },
                             "clicks": {
-                                "type": "string"
+                                "type": "integer"
                             },
                             "reach": {
-                                "type": "string"
+                                "type": "integer"
                             },
                             "spend": {
-                                "type": "string"
-                            },
-                            "updated_time": {
-                                "type": "string",
-                                "format": "date-time"
+                                "type": "number"
                             }
                         }
                     }
