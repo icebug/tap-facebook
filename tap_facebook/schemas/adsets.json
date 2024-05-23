@@ -157,6 +157,41 @@
                     }
                 }
             }
+        },
+        "insights": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "date_start": {
+                                "type": "string"
+                            },
+                            "date_stop": {
+                                "type": "string"
+                            },
+                            "impressions": {
+                                "type": "string"
+                            },
+                            "clicks": {
+                                "type": "string"
+                            },
+                            "reach": {
+                                "type": "string"
+                            },
+                            "spend": {
+                                "type": "string"
+                            },
+                            "updated_time": {
+                                "type": "string",
+                                "format": "date-time"
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

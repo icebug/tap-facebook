@@ -39,6 +39,7 @@ class AdsetsStream(IncrementalFacebookStream):
         "optimization_goal",
         "targeting",
         "activities{event_time,event_type,extra_data}",
+        "insights.time_increment(1){date_start,date_stop,spend,impressions,reach,clicks}",
     ]
 
     columns_remaining = [  # noqa: RUF012
