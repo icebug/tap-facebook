@@ -63,12 +63,35 @@
                             "items": {
                                 "type": "string"
                             }
+                        },
+                        "regions": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "key": {
+                                        "type": "string"
+                                    },
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "country": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
                         }
                     }
                 },
                 "excluded_geo_locations": {
                     "type": "object",
                     "properties": {
+                        "countries": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
                         "regions": {
                             "type": "array",
                             "items": {
