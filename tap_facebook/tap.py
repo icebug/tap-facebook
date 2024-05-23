@@ -10,32 +10,9 @@ from singer_sdk import typing as th  # JSON schema typing helpers
 if t.TYPE_CHECKING:
     from tap_facebook.client import FacebookStream
 
-from tap_facebook.streams import (
-    AdAccountsStream,
-    AdImages,
-    AdLabelsStream,
-    AdsetsStream,
-    AdsInsightStream,
-    AdsStream,
-    AdVideos,
-    CampaignStream,
-    CreativeStream,
-    CustomAudiences,
-    CustomConversions,
-)
+from tap_facebook.streams import AdsetsStream
 
-STREAM_TYPES = [
-    AdsetsStream,
-    AdsStream,
-    CampaignStream,
-    CreativeStream,
-    AdLabelsStream,
-    AdAccountsStream,
-    CustomConversions,
-    CustomAudiences,
-    AdImages,
-    AdVideos,
-]
+STREAM_TYPES = [AdsetsStream]
 
 DEFAULT_INSIGHT_REPORT = {
     "name": "default",
@@ -195,18 +172,8 @@ class TapFacebook(Tap):
             A list of discovered streams.
         """
         streams = [stream_class(tap=self) for stream_class in STREAM_TYPES]
-        report_configs = [
-            DEFAULT_INSIGHT_REPORT,
-            *self.config.get("insight_reports_list"),
-        ]
-        insight_streams = [
-            AdsInsightStream(
-                tap=self,
-                report_definition=insight_report_definition,
-            )
-            for insight_report_definition in report_configs
-        ]
-        return [*streams, *insight_streams]
+
+        return [*streams]
 
 
 if __name__ == "__main__":
