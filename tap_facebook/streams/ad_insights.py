@@ -17,36 +17,6 @@ from facebook_business.api import FacebookAdsApi
 from singer_sdk import typing as th
 from singer_sdk.streams.core import REPLICATION_INCREMENTAL, Stream
 
-EXCLUDED_FIELDS = [
-    "total_postbacks",
-    "adset_end",
-    "adset_start",
-    "conversion_lead_rate",
-    "cost_per_conversion_lead",
-    "cost_per_dda_countby_convs",
-    "cost_per_one_thousand_ad_impression",
-    "cost_per_unique_conversion",
-    "creative_media_type",
-    "dda_countby_convs",
-    "dda_results",
-    "instagram_upcoming_event_reminders_set",
-    "interactive_component_tap",
-    "marketing_messages_cost_per_delivered",
-    "marketing_messages_cost_per_link_btn_click",
-    "marketing_messages_spend",
-    "place_page_name",
-    "total_postbacks",
-    "total_postbacks_detailed",
-    "total_postbacks_detailed_v4",
-    "unique_conversions",
-    "unique_video_continuous_2_sec_watched_actions",
-    "unique_video_view_15_sec",
-    "video_thruplay_watched_actions",
-    "__module__",
-    "__doc__",
-    "__dict__",
-]
-
 SLEEP_TIME_INCREMENT = 5
 INSIGHTS_MAX_WAIT_TO_START_SECONDS = 5 * 60
 INSIGHTS_MAX_WAIT_TO_FINISH_SECONDS = 30 * 60
@@ -94,30 +64,6 @@ class AdsInsightStream(Stream):
         if d_type == "string":
             return th.StringType()
         if d_type.startswith("list"):
-            if "AdsActionStats" in d_type:
-                sub_props = [
-                    th.Property(field.replace("field_", ""), th.StringType())
-                    for field in list(AdsActionStats.Field.__dict__)
-                    if field not in EXCLUDED_FIELDS
-                ]
-                return th.ArrayType(th.ObjectType(*sub_props))
-            if "AdsHistogramStats" in d_type:
-                sub_props = []
-                for field in list(AdsHistogramStats.Field.__dict__):
-                    if field not in EXCLUDED_FIELDS:
-                        clean_field = field.replace("field_", "")
-                        if (
-                            AdsHistogramStats._field_types[clean_field] == "string"
-                        ):  # noqa: SLF001
-                            sub_props.append(th.Property(clean_field, th.StringType()))
-                        else:
-                            sub_props.append(
-                                th.Property(
-                                    clean_field,
-                                    th.ArrayType(th.IntegerType()),
-                                ),
-                            )
-                return th.ArrayType(th.ObjectType(*sub_props))
             return th.ArrayType(th.ObjectType())
         msg = f"Type not found for field: {field}"
         raise RuntimeError(msg)
@@ -126,9 +72,17 @@ class AdsInsightStream(Stream):
     @lru_cache  # noqa: B019
     def schema(self) -> dict:
         properties: th.List[th.Property] = []
+
+        adset_id = self._report_definition["adset_id"]
+        date_start = self._report_definition["date_start"]
+        date_end = self._report_definition["date_end"]
+        included_fields = [adset_id, date_start, date_end] + self._report_definition[
+            "fields"
+        ]
+
         columns = list(AdsInsights.Field.__dict__)[1:]
         for field in columns:
-            if field in EXCLUDED_FIELDS:
+            if field not in included_fields:
                 continue
             properties.append(th.Property(field, self._get_datatype(field)))
         return th.PropertiesList(*properties).to_dict()
