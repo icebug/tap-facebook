@@ -73,12 +73,9 @@ class AdsInsightStream(Stream):
     def schema(self) -> dict:
         properties: th.List[th.Property] = []
 
-        adset_id = self._report_definition["adset_id"]
         date_start = self._report_definition["date_start"]
         date_end = self._report_definition["date_end"]
-        included_fields = [adset_id, date_start, date_end] + self._report_definition[
-            "fields"
-        ]
+        included_fields = [date_start, date_end] + self._report_definition["fields"]
 
         columns = list(AdsInsights.Field.__dict__)[1:]
         for field in columns:
