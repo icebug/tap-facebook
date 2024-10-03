@@ -51,6 +51,18 @@ SLEEP_TIME_INCREMENT = 5
 INSIGHTS_MAX_WAIT_TO_START_SECONDS = 5 * 60
 INSIGHTS_MAX_WAIT_TO_FINISH_SECONDS = 30 * 60
 
+# Setting this through config does not work...
+# Hard coding it here
+REPORT_DEFINITION = {
+    "name": "adset",
+    "level": "adset",
+    "time_increment_days": 1,
+    "fields": ["adset_id", "impressions", "clicks", "spend"],
+    "date_start": "2024-10-01",
+    "date_end": "2024-10-02",
+    "lookback_window": 28,
+}
+
 
 class AdsInsightStream(Stream):
     name = "adsinsights"
@@ -59,13 +71,13 @@ class AdsInsightStream(Stream):
 
     def __init__(self, *args, **kwargs) -> None:  # noqa: ANN002, ANN003
         """Initialize the stream."""
-        self._report_definition = kwargs.pop("report_definition")
+        self._report_definition = REPORT_DEFINITION
         kwargs["name"] = f"{self.name}_{self._report_definition['name']}"
         super().__init__(*args, **kwargs)
 
     @property
     def primary_keys(self) -> list[str] | None:
-        return ["date_start", "account_id", "ad_id"] + self._report_definition["breakdowns"]
+        return ["date_start", "account_id", "adset_id"]
 
     @primary_keys.setter
     def primary_keys(self, new_value: list[str] | None) -> None:
@@ -94,7 +106,9 @@ class AdsInsightStream(Stream):
                 for field in list(AdsHistogramStats.Field.__dict__):
                     if field not in EXCLUDED_FIELDS:
                         clean_field = field.replace("field_", "")
-                        if AdsHistogramStats._field_types[clean_field] == "string":  # noqa: SLF001
+                        if (
+                            AdsHistogramStats._field_types[clean_field] == "string"
+                        ):  # noqa: SLF001
                             sub_props.append(th.Property(clean_field, th.StringType()))
                         else:
                             sub_props.append(
@@ -117,8 +131,6 @@ class AdsInsightStream(Stream):
             if field in EXCLUDED_FIELDS:
                 continue
             properties.append(th.Property(field, self._get_datatype(field)))
-        for breakdown in self._report_definition["breakdowns"]:
-            properties.append(th.Property(breakdown, th.StringType()))
         return th.PropertiesList(*properties).to_dict()
 
     def _initialize_client(self) -> None:
@@ -191,14 +203,6 @@ class AdsInsightStream(Stream):
         msg = "Job failed to complete for unknown reason"
         raise RuntimeError(msg)
 
-    def _get_selected_columns(self) -> list[str]:
-        columns = [
-            keys[1] for keys, data in self.metadata.items() if data.selected and len(keys) > 0
-        ]
-        if not columns and self.name == "adsinsights_default":
-            columns = list(self.schema["properties"])
-        return columns
-
     def _get_start_date(
         self,
         context: dict | None,
@@ -257,20 +261,11 @@ class AdsInsightStream(Stream):
         report_start = self._get_start_date(context)
         report_end = report_start.add(days=time_increment)
 
-        columns = self._get_selected_columns()
         while report_start <= sync_end_date:
             params = {
                 "level": self._report_definition["level"],
-                "action_breakdowns": self._report_definition["action_breakdowns"],
-                "action_report_time": self._report_definition["action_report_time"],
-                "breakdowns": self._report_definition["breakdowns"],
-                "fields": columns,
+                "fields": self._report_definition["fields"],
                 "time_increment": time_increment,
-                "limit": 100,
-                "action_attribution_windows": [
-                    self._report_definition["action_attribution_windows_view"],
-                    self._report_definition["action_attribution_windows_click"],
-                ],
                 "time_range": {
                     "since": report_start.to_date_string(),
                     "until": report_end.to_date_string(),
