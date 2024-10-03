@@ -27,9 +27,7 @@ REPORT_DEFINITION = {
     "name": "adset",
     "level": "adset",
     "time_increment_days": 1,
-    "fields": ["adset_id", "impressions", "clicks", "spend"],
-    "date_start": "2024-10-01",
-    "date_end": "2024-10-02",
+    "fields": ["adset_id", "date_start", "date_stop", "impressions", "clicks", "spend"],
     "lookback_window": 28,
 }
 
@@ -73,7 +71,7 @@ class AdsInsightStream(Stream):
     def schema(self) -> dict:
         properties: th.List[th.Property] = []
 
-        included_fields = ["date_start", "date_end"] + self._report_definition["fields"]
+        included_fields = self._report_definition["fields"]
 
         columns = list(AdsInsights.Field.__dict__)[1:]
         for field in columns:
