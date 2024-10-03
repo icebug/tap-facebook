@@ -78,6 +78,9 @@ class AdsInsightStream(Stream):
             if field not in included_fields:
                 continue
             properties.append(th.Property(field, self._get_datatype(field)))
+
+        properties.append(th.Property("extracted_at", th.DateTimeType()))
+
         return th.PropertiesList(*properties).to_dict()
 
     def _initialize_client(self) -> None:
@@ -115,6 +118,8 @@ class AdsInsightStream(Stream):
                 params["time_range"]["until"],
                 percent_complete,
             )
+
+            job["extracted_at"] = time_start
 
             if status == "Job Completed":
                 return job
