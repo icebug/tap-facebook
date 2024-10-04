@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from datetime import datetime, timezone
 import typing as t
 from functools import lru_cache
 
@@ -10,8 +11,6 @@ import facebook_business.adobjects.user as fb_user
 import pendulum
 from facebook_business.adobjects.adaccount import AdAccount
 from facebook_business.adobjects.adreportrun import AdReportRun
-from facebook_business.adobjects.adsactionstats import AdsActionStats
-from facebook_business.adobjects.adshistogramstats import AdsHistogramStats
 from facebook_business.adobjects.adsinsights import AdsInsights
 from facebook_business.api import FacebookAdsApi
 from singer_sdk import typing as th
@@ -119,8 +118,6 @@ class AdsInsightStream(Stream):
                 percent_complete,
             )
 
-            job["extracted_at"] = time_start
-
             if status == "Job Completed":
                 return job
             if status == "Job Failed":
@@ -224,8 +221,13 @@ class AdsInsightStream(Stream):
                 },
             }
             job = self._run_job_to_completion(params)
+            extracted_at = datetime.now(timezone.utc).isoformat()
+
             for obj in job.get_result():
-                yield obj.export_all_data()
+                all_data = obj.export_all_data()
+                # Add the extracted_at time to the record
+                all_data["extracted_at"] = extracted_at
+                yield all_data
             # Bump to the next increment
             report_start = report_start.add(days=time_increment)
             report_end = report_end.add(days=time_increment)
