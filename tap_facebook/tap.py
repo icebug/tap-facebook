@@ -14,18 +14,6 @@ from tap_facebook.streams import AdsetsStream, AdsInsightStream
 
 STREAM_TYPES = [AdsetsStream, AdsInsightStream]
 
-DEFAULT_INSIGHT_REPORT = {
-    "name": "default",
-    "level": "ad",
-    "action_breakdowns": [],
-    "breakdowns": [],
-    "time_increment_days": 1,
-    "action_attribution_windows_view": "1d_view",
-    "action_attribution_windows_click": "7d_click",
-    "action_report_time": "mixed",
-    "lookback_window": 28,
-}
-
 
 class TapFacebook(Tap):
     """Singer tap for extracting data from the Facebook Marketing API."""

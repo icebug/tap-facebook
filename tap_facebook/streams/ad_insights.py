@@ -27,7 +27,6 @@ REPORT_DEFINITION = {
     "level": "adset",
     "time_increment_days": 1,
     "fields": ["adset_id", "date_start", "date_stop", "impressions", "clicks", "spend"],
-    "lookback_window": 28,
 }
 
 
@@ -156,12 +155,13 @@ class AdsInsightStream(Stream):
         self,
         context: dict | None,
     ) -> pendulum.Date:
-        lookback_window = self._report_definition["lookback_window"]
+        lookback_window = self.config["lookback_window"]
 
         config_start_date = pendulum.parse(self.config["start_date"]).date()
         incremental_start_date = pendulum.parse(
             self.get_starting_replication_key_value(context),
         ).date()
+
         lookback_start_date = incremental_start_date.subtract(days=lookback_window)
 
         # Don't use lookback if this is the first sync. Just start where the user requested.
