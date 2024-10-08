@@ -20,13 +20,12 @@ SLEEP_TIME_INCREMENT = 5
 INSIGHTS_MAX_WAIT_TO_START_SECONDS = 5 * 60
 INSIGHTS_MAX_WAIT_TO_FINISH_SECONDS = 30 * 60
 
-# Setting this through config does not work...
-# Hard coding it here
 REPORT_DEFINITION = {
     "name": "adset",
     "level": "adset",
     "time_increment_days": 1,
     "fields": ["adset_id", "date_start", "date_stop", "impressions", "clicks", "spend"],
+    "breakdowns": ["country", "region"],
 }
 
 
@@ -69,13 +68,19 @@ class AdsInsightStream(Stream):
     def schema(self) -> dict:
         properties: th.List[th.Property] = []
 
-        included_fields = self._report_definition["fields"]
-
         columns = list(AdsInsights.Field.__dict__)[1:]
-        for field in columns:
-            if field not in included_fields:
-                continue
-            properties.append(th.Property(field, self._get_datatype(field)))
+        fields = (
+            self._report_definition["fields"] + self._report_definition["breakdowns"]
+        )
+
+        # Use the AdsInsights class to determine the datatype of each field.
+        # If the field is not found in the AdsInsights class, default to StringType.
+        for field in fields:
+            if field in columns:
+                dtype = self._get_datatype(field)
+            else:
+                dtype = th.StringType()
+            properties.append(th.Property(field, dtype))
 
         properties.append(th.Property("extracted_at", th.DateTimeType()))
 
@@ -215,6 +220,7 @@ class AdsInsightStream(Stream):
                 "level": self._report_definition["level"],
                 "fields": self._report_definition["fields"],
                 "time_increment": time_increment,
+                "breakdowns": self._report_definition["breakdowns"],
                 "time_range": {
                     "since": report_start.to_date_string(),
                     "until": report_end.to_date_string(),
