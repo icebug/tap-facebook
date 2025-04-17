@@ -217,8 +217,9 @@ class AdsInsightStream(Stream):
         report_end = report_start.add(days=time_increment)
 
         while report_start <= sync_end_date:
+
             self.logger.info(
-                "Report start %s is before or equal to sync end date %s. Continuing sync.",
+                "Report start %s is before or equal to report end date %s. Continuing sync.",
                 report_start.to_date_string(),
                 report_end.to_date_string(),
             )
