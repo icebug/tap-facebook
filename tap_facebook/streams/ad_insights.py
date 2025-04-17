@@ -211,11 +211,17 @@ class AdsInsightStream(Stream):
         sync_end_date = pendulum.parse(
             self.config.get("end_date", pendulum.today().to_date_string()),
         ).date()
+        self.logger.info("Sync end date: %s", sync_end_date)
 
         report_start = self._get_start_date(context)
         report_end = report_start.add(days=time_increment)
 
         while report_start <= sync_end_date:
+            self.logger.info(
+                "Report start %s is before or equal to sync end date %s. Continuing sync.",
+                report_start.to_date_string(),
+                report_end.to_date_string(),
+            )
             params = {
                 "level": self._report_definition["level"],
                 "fields": self._report_definition["fields"],
