@@ -7,6 +7,8 @@ from datetime import datetime, timezone
 import typing as t
 from functools import lru_cache
 
+from facebook_business.exceptions import FacebookRequestError
+
 import facebook_business.adobjects.user as fb_user
 import pendulum
 from facebook_business.adobjects.adaccount import AdAccount
@@ -19,6 +21,8 @@ from singer_sdk.streams.core import REPLICATION_INCREMENTAL, Stream
 SLEEP_TIME_INCREMENT = 5
 INSIGHTS_MAX_WAIT_TO_START_SECONDS = 5 * 60
 INSIGHTS_MAX_WAIT_TO_FINISH_SECONDS = 30 * 60
+MAX_PAGINATION_RETRIES = 5
+PAGINATION_RETRY_DELAY = 10
 
 REPORT_DEFINITION = {
     "name": "adset",
@@ -156,6 +160,31 @@ class AdsInsightStream(Stream):
         msg = "Job failed to complete for unknown reason"
         raise RuntimeError(msg)
 
+    def _get_records_with_retry(self, params: dict) -> t.Iterable[dict]:
+        extracted_at = datetime.now(timezone.utc).isoformat()
+        for attempt in range(MAX_PAGINATION_RETRIES + 1):
+            try:
+                job = self._run_job_to_completion(params)
+                records = []
+                for obj in job.get_result():
+                    all_data = obj.export_all_data()
+                    all_data["extracted_at"] = extracted_at
+                    records.append(all_data)
+                yield from records
+                return
+            except FacebookRequestError as e:
+                if e.http_status() == 500 and attempt < MAX_PAGINATION_RETRIES:
+                    self.logger.warning(
+                        "Facebook API 500 error during pagination. "
+                        "Retry %s/%s in %s seconds.",
+                        attempt + 1,
+                        MAX_PAGINATION_RETRIES,
+                        PAGINATION_RETRY_DELAY,
+                    )
+                    time.sleep(PAGINATION_RETRY_DELAY)
+                    continue
+                raise
+
     def _get_start_date(
         self,
         context: dict | None,
@@ -233,14 +262,8 @@ class AdsInsightStream(Stream):
                     "until": report_end.to_date_string(),
                 },
             }
-            job = self._run_job_to_completion(params)
-            extracted_at = datetime.now(timezone.utc).isoformat()
-
-            for obj in job.get_result():
-                all_data = obj.export_all_data()
-                # Add the extracted_at time to the record
-                all_data["extracted_at"] = extracted_at
-                yield all_data
+            for record in self._get_records_with_retry(params):
+                yield record
             # Bump to the next increment
             report_start = report_start.add(days=time_increment)
             report_end = report_end.add(days=time_increment)
