@@ -12,7 +12,7 @@ if t.TYPE_CHECKING:
 
 from tap_facebook.streams import AdsetsStream, AdsInsightStream
 
-STREAM_TYPES = [AdsetsStream, AdsInsightStream]
+STREAM_TYPES = [AdsetsStream]
 
 
 class TapFacebook(Tap):
@@ -32,7 +32,7 @@ class TapFacebook(Tap):
             "api_version",
             th.StringType,
             description="The API version to request data from.",
-            default="v18.0",
+            default="v22.0",
         ),
         th.Property(
             "account_id",
@@ -50,7 +50,7 @@ class TapFacebook(Tap):
                         description=(
                             "A name used to define your custom report. "
                             "This will included in the stream name. "
-                            "Changing this name will affect incremental bookmark values.",
+                            "Changing this name will affect incremental bookmark values."
                         ),
                         required=True,
                     ),
@@ -61,11 +61,20 @@ class TapFacebook(Tap):
                         default="ad",
                     ),
                     th.Property(
+                        "fields",
+                        th.ArrayType(th.StringType),
+                        description=(
+                            "Explicit list of insight fields to request. Also bounds the "
+                            "stream schema to those fields. When omitted, fields are taken "
+                            "from catalog selection and the schema covers every available "
+                            "field."
+                        ),
+                    ),
+                    th.Property(
                         "action_breakdowns",
                         th.ArrayType(th.StringType),
                         description=(
-                            "How to break down action results. "
-                            "Supports more than one breakdowns.",
+                            "How to break down action results. Supports more than one breakdowns."
                         ),
                         default=[],
                     ),
@@ -153,15 +162,21 @@ class TapFacebook(Tap):
         ),
     ).to_dict()
 
-    def discover_streams(self) -> list[FacebookStream]:
+    def discover_streams(self) -> list[FacebookStream | AdsInsightStream]:
         """Return a list of discovered streams.
 
         Returns:
             A list of discovered streams.
         """
         streams = [stream_class(tap=self) for stream_class in STREAM_TYPES]
-
-        return [*streams]
+        insight_streams = [
+            AdsInsightStream(
+                tap=self,
+                report_definition=insight_report_definition,
+            )
+            for insight_report_definition in self.config.get("insight_reports_list", [])
+        ]
+        return [*streams, *insight_streams]
 
 
 if __name__ == "__main__":
